@@ -1,0 +1,227 @@
+package pretvaracValuta;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.DecimalFormat;
+import java.util.ResourceBundle;
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+
+
+public class PretvaracController implements Initializable{
+	
+	@FXML private ComboBox<String> comboOne;
+	@FXML private ComboBox<String> comboTwo;
+	@FXML private Button button;
+	@FXML private TextField textField;
+	@FXML private Label status;
+	@FXML private TextArea lista;
+	private String inputLine;
+	private URLconnection uc;
+	private String valuta;
+	private String cifra;
+	private JSONArray arr;
+	
+	
+	
+	public void initialize(URL url, ResourceBundle rb) {
+		
+	uc = new URLconnection();
+		
+	try {
+		connection();
+	}
+	catch (Exception e) {
+	e.printStackTrace();
+	}}
+	
+
+	public void connection() {
+		
+	ObservableList<String> list=FXCollections.observableArrayList("AUD","CAD","CZK","DKK","HUF","JPY","NOK","SEK","CHF","GBP","USD","BAM","EUR","PLN","KN");
+
+	comboOne.setItems(list);
+	comboTwo.setItems(list);
+		
+	comboOne.setPromptText("-odaberi-");
+	comboTwo.setPromptText("-odaberi-");
+	
+	
+	HttpURLConnection conn = uc.urlConnect();
+	
+	//input stream
+	try (InputStreamReader  sr =new InputStreamReader(conn.getInputStream());
+	    BufferedReader in = new BufferedReader(sr)){ 
+			
+	//double responseCode = conn.getResponseCode();
+	StringBuilder response = new StringBuilder();
+	
+	//loop adds input to stringBuilder
+	while ((inputLine = in.readLine()) != null) {
+			response.append(inputLine);
+	}
+	//JSON Array - adds String input from StringBuilder
+	arr = new JSONArray(response.toString());
+		
+	for (int i = 0; i < arr.length(); i++)
+	{
+	//parsing strings from JSON to POJO
+	valuta = arr.getJSONObject(i).getString("Valuta");
+	cifra = arr.getJSONObject(i).getString("Srednji za devize");
+	System.out.println(valuta + " " + cifra);
+	}
+	
+	
+	
+	
+			String aud = arr.getJSONObject(0).getString("Srednji za devize");
+			String cad = arr.getJSONObject(1).getString("Srednji za devize");
+			String czk = arr.getJSONObject(2).getString("Srednji za devize");
+			String dkk = arr.getJSONObject(3).getString("Srednji za devize");
+			String huf = arr.getJSONObject(4).getString("Srednji za devize");
+			String jpy = arr.getJSONObject(5).getString("Srednji za devize");
+			String nok = arr.getJSONObject(6).getString("Srednji za devize");
+			String sek = arr.getJSONObject(7).getString("Srednji za devize");
+			String chf = arr.getJSONObject(8).getString("Srednji za devize");
+			String gbp = arr.getJSONObject(9).getString("Srednji za devize");
+			String usd = arr.getJSONObject(10).getString("Srednji za devize");
+			String bam = arr.getJSONObject(11).getString("Srednji za devize");
+			String eur = arr.getJSONObject(12).getString("Srednji za devize");
+			String pln = arr.getJSONObject(13).getString("Srednji za devize");
+			
+			String nl = "\n";
+			
+			String str ="AUD = "+aud + nl + "CAD = "+cad +nl + "CZK = "+czk + nl + "DKK = "+dkk + nl +"HUF = " +huf
+					+ nl + "JPY = "+jpy+nl+"NOK = " + nok + nl + "SEK = "+sek+nl+"CHF = "+chf+nl+"GBP = "+gbp+nl+
+					"USD = "+usd + nl+"BAM = "+bam+nl+ "EUR = "+eur +nl+"PLN = "+pln;
+			lista.setEditable(false);
+			lista.setWrapText(true);		
+			lista.setText(str);
+	}
+	catch (IOException | JSONException e) {
+		e.printStackTrace();
+	}
+	}
+	public void buttonClickHandler(ActionEvent evt) {
+		
+		Button clickedButton = (Button) evt.getTarget();
+		
+		String buttonLabel = clickedButton.getText();
+		try {
+		if("Preračunaj".equals(buttonLabel)) {
+			
+			int indexOne = comboOne.getSelectionModel().getSelectedIndex();
+			int indexTwo = comboTwo.getSelectionModel().getSelectedIndex();
+			
+			if((indexOne == 14) && (indexTwo != 14)) {
+				try {
+				String valutaTwo = arr.getJSONObject(indexTwo).getString("Valuta");
+				String vrijednostTwo = arr.getJSONObject(indexTwo).getString("Srednji za devize");
+				String vrijednostTwoTwo = vrijednostTwo.replaceFirst(",", ".");
+				String textValue = textField.getText();
+				double doubleValue = Double.parseDouble(textValue);
+				double valutaDoubleTwo = Double.parseDouble(vrijednostTwoTwo);
+				double sum = 1*doubleValue;
+				double finishSum = sum/valutaDoubleTwo;
+				//solving the problem with too many decimals-setting only two decimals
+				DecimalFormat df = new DecimalFormat("#.00");
+				String formated = (df.format(finishSum));
+				//showing final result - written while developing just to see if everything is working as it should  			
+				System.out.println(formated);
+				//showing the result on user interface - text + value
+				status.setText("Rezultat:    "+textValue+" KN = "+ formated+" "+valutaTwo);		
+				} catch (JSONException e) {
+					System.out.println("prvi");;
+				}
+			}
+			else if((indexTwo == 14)&&(indexOne !=14)) {
+				try {
+				String valutaOne = arr.getJSONObject(indexOne).getString("Valuta");
+				String vrijednostOne = arr.getJSONObject(indexOne).getString("Srednji za devize");
+				String vrijednostOneOne = vrijednostOne.replaceFirst(",", ".");
+				String textValue = textField.getText();
+				double doubleValue = Double.parseDouble(textValue);
+				double valutaDoubleOne = Double.parseDouble(vrijednostOneOne);
+				double sum = 1*doubleValue;
+				double finishSum = sum*valutaDoubleOne;
+				//solving the problem with too many decimals-setting only two decimals
+				DecimalFormat df = new DecimalFormat("#.00");
+				String formated = (df.format(finishSum));
+				//showing final result - written just to see if everything is working as it should  			
+				System.out.println(formated);
+				//showing the result on user interface - text + value
+				status.setText("Rezultat:    "+textValue+" "+valutaOne +" = "+ formated+" "+"KN");		
+				} catch (JSONException e) {
+					System.out.println("drugi");
+				}
+			}
+			else if((indexOne == indexTwo)&&(indexOne !=14)) {
+				String valutaTwo;
+				try {
+				valutaTwo = arr.getJSONObject(indexTwo).getString("Valuta");
+				String textValue = textField.getText();
+				status.setText("Rezultat:    "+textValue +" "+valutaTwo);
+				} catch (JSONException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			else if((indexOne != 14) && (indexTwo != 14)&& (indexOne != indexTwo))
+			try {
+			String valutaOne = arr.getJSONObject(indexOne).getString("Valuta");
+			String vrijednostOne = arr.getJSONObject(indexOne).getString("Srednji za devize");
+			String valutaTwo = arr.getJSONObject(indexTwo).getString("Valuta");
+			String vrijednostTwo = arr.getJSONObject(indexTwo).getString("Srednji za devize");
+			
+			//solving the problem in syntax, replacing comma for dot			
+			String vrijednostOneOne = vrijednostOne.replaceFirst(",", ".");
+			String vrijednostTwoTwo = vrijednostTwo.replaceFirst(",", ".");
+			String textValue = textField.getText();
+			//parsing the value from string to double			
+			double doubleValue = Double.parseDouble(textValue);						
+			double valutaDoubleOne = Double.parseDouble(vrijednostOneOne);
+			double valutaDoubleTwo = Double.parseDouble(vrijednostTwoTwo);
+			//showing results- written just to check if everything is working properly 			
+			System.out.println(valutaOne);
+			System.out.println(valutaDoubleOne);
+			System.out.println(valutaTwo);
+			System.out.println(valutaDoubleTwo);
+			//simple calculation logic 			
+			double sum = valutaDoubleOne*doubleValue;
+			double finishSum = sum/valutaDoubleTwo;
+			//solving the problem with too many decimals-setting only two decimals
+			DecimalFormat df = new DecimalFormat("#.00");
+			String formated = (df.format(finishSum));
+			//showing final result - written just to see if everything is working as it should  			
+			System.out.println(finishSum);
+			//showing the result on user interface - text + value
+			status.setText("Rezultat:    "+textValue+" "+valutaOne+" = "+ formated+" "+valutaTwo);	
+			} catch (JSONException e) {
+				e.printStackTrace();
+				}
+			else if((indexOne == 14)&&(indexTwo == 14)){
+				String textValue = textField.getText();
+				status.setText("Rezultat:    "+ textValue + "KN");
+			}	
+		}
+		}
+		catch(NullPointerException e){
+			System.out.println("Odaberite valutu");
+		}
+	
+	}}
+	
