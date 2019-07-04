@@ -68,9 +68,9 @@ public class PretvaracController implements Initializable{
 		     BufferedReader in = new BufferedReader(sr)){ 			
 			 response = new StringBuilder();
 			 while ((inputLine = in.readLine()) != null) {
-				 response.append(inputLine);						// XML -> StringBuilder response
+				 response.append(inputLine);						// JSON -> StringBuilder response
 		}
-		arr = new JSONArray(response.toString());				// JSON			
+		arr = new JSONArray(response.toString());				
 		for (int i = 0; i < arr.length(); i++){
 			valuta = arr.getJSONObject(i).getString("Valuta");
 			vrijednost = Double.parseDouble(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
