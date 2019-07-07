@@ -1,4 +1,4 @@
-package pretvaracValuta;
+package application;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -27,7 +27,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 
-public class PretvaracController implements Initializable {
+public class Converter implements Initializable {
 
 	@FXML
 	private ComboBox<String> comboOne;
@@ -84,12 +84,13 @@ public class PretvaracController implements Initializable {
 		}
 	}
 
-	public StringBuilder connection() throws IOException {
+	public StringBuilder connection() {
 		uc = new URLconnection();
 		conn = uc.urlConnect();
 		if (conn != null) {
 			connectionOK = true;
 			try {
+				refresh.setDisable(false);
 				sr = new InputStreamReader(conn.getInputStream());
 				in = new BufferedReader(sr);
 				response = new StringBuilder();
@@ -146,7 +147,6 @@ public class PretvaracController implements Initializable {
 		lista.setEditable(false);
 		lista.setWrapText(true);
 		lista.setText(valuteKV.toString().replace("{", "").replace("}", ""));
-		textField.setText("0");
 	}
 
 	public void buttonClickHandler(ActionEvent evt) throws IOException {
@@ -154,7 +154,6 @@ public class PretvaracController implements Initializable {
 		buttonLabel = clickedButton.getText();
 		try {
 			if("R".equals(buttonLabel)) {
-				status.setText("");
 				setup(connection());
 			}
 			if ("Preračunaj".equals(buttonLabel)) {
