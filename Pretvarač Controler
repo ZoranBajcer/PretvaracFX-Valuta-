@@ -1,11 +1,17 @@
 package pretvaracValuta;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import org.json.JSONArray;
@@ -21,14 +27,24 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 
-public class PretvaracController implements Initializable{
-	
-	@FXML private ComboBox<String> comboOne;
-	@FXML private ComboBox<String> comboTwo;
-	@FXML private Button button;
-	@FXML private TextField textField;
-	@FXML private Label status;
-	@FXML private TextArea lista;
+public class PretvaracController implements Initializable {
+
+	@FXML
+	private ComboBox<String> comboOne;
+	@FXML
+	private ComboBox<String> comboTwo;
+	@FXML
+	private Button refresh;
+	@FXML
+	private Button button;
+	@FXML
+	private TextField textField;
+	@FXML
+	private Label status;
+	@FXML
+	private Label connection;
+	@FXML
+	private TextArea lista;
 	private String inputLine;
 	private String valuta;
 	private String textValue;
@@ -42,86 +58,130 @@ public class PretvaracController implements Initializable{
 	private double doubleValue;
 	private double sum;
 	private double finishSum;
+	private boolean connectionOK;
 	private JSONArray arr;
 	private HttpURLConnection conn;
-	private HashMap<String, Double> valuteKV  = new HashMap<String, Double>();
-	private HashMap<String, Double> jediniceKV  = new HashMap<String, Double>();
+	private HashMap<String, Double> valuteKV = new HashMap<String, Double>();
+	private HashMap<String, Double> jediniceKV = new HashMap<String, Double>();
 	private StringBuilder response = null;
 	private Button clickedButton;
 	private DecimalFormat df;
-
-	
+	private FileInputStream fis;
+	private ObjectInputStream ois;
+	private InputStreamReader sr;
+	private BufferedReader in;
+	private FileOutputStream fos;
+	private ObjectOutputStream oos;
+	private SimpleDateFormat formatter; 
+	private Date date;
+	private String time;
 	
 	public void initialize(URL url, ResourceBundle rb) {
-		uc = new URLconnection();
 		try {
-			connection();
-		}
-		catch (Exception e) {
+			setup(connection());
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void connection() {
+	public StringBuilder connection() throws IOException {
+		uc = new URLconnection();
 		conn = uc.urlConnect();
-		try (InputStreamReader  sr =new InputStreamReader(conn.getInputStream());
-		     BufferedReader in = new BufferedReader(sr)){ 			
-			 response = new StringBuilder();
-			 while ((inputLine = in.readLine()) != null) {
-				 response.append(inputLine);						// JSON -> StringBuilder response
+		if (conn != null) {
+			connectionOK = true;
+			try {
+				sr = new InputStreamReader(conn.getInputStream());
+				in = new BufferedReader(sr);
+				response = new StringBuilder();
+				while ((inputLine = in.readLine()) != null) {
+					response.append(inputLine); 				
+					}
+				formatter= new SimpleDateFormat("dd-MM-yyyy 'u' HH:mm:ss");  
+				date = new Date(System.currentTimeMillis());  
+				time = formatter.format(date); 
+				connection.setText("Uƒçitano! " + time);
+				fos = new FileOutputStream("HNBresponse.ser");
+				oos = new ObjectOutputStream(fos);
+				oos.writeObject(response);
+				oos.close();
+				fos.close();
+				sr.close();
+				in.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			connectionOK = false;
+			try {
+				refresh.setDisable(true);
+				fis = new FileInputStream("HNBresponse.ser");
+				ois = new ObjectInputStream(fis);
+				response = (StringBuilder) ois.readObject();
+				ois.close();
+				fis.close();
+				connection.setText("Nema interneta! Uƒçitani su stari podaci!");
+			} catch (IOException | ClassNotFoundException ioe) {
+				ioe.printStackTrace();
+			}
 		}
-		arr = new JSONArray(response.toString());				
-		for (int i = 0; i < arr.length(); i++){
+		return response;
+	}
+
+	public void setup(StringBuilder response) throws JSONException {
+		arr = new JSONArray(response.toString());
+		for (int i = 0; i < arr.length(); i++) {
 			valuta = arr.getJSONObject(i).getString("Valuta");
 			vrijednost = Double.parseDouble(arr.getJSONObject(i).getString("Srednji za devize").replaceFirst(",", "."));
 			jedinica = Double.parseDouble(arr.getJSONObject(i).getString("Jedinica"));
 			valuteKV.put(valuta, vrijednost);
 			jediniceKV.put(valuta, jedinica);
 		}
-				valuteKV.put("KN", 1.);
-				jediniceKV.put("KN", 1.);
-				ObservableList<String> list=FXCollections.observableArrayList(valuteKV.keySet());
-				comboOne.setItems(list);
-				comboTwo.setItems(list);
-				comboOne.setPromptText("-odaberi-");
-				comboTwo.setPromptText("-odaberi-");
-				lista.setEditable(false);
-				lista.setWrapText(true);		
-				lista.setText(valuteKV.toString().replace("{","").replace("}",""));
-				textField.setText("0");
-			}
-			catch (IOException | JSONException e) {
-				e.printStackTrace();
-		}			
+		valuteKV.put("KN", 1.);
+		jediniceKV.put("KN", 1.);
+		ObservableList<String> list = FXCollections.observableArrayList(valuteKV.keySet());
+		comboOne.setItems(list);
+		comboTwo.setItems(list);
+		comboOne.setPromptText("-odaberi-");
+		comboTwo.setPromptText("-odaberi-");
+		lista.setEditable(false);
+		lista.setWrapText(true);
+		lista.setText(valuteKV.toString().replace("{", "").replace("}", ""));
+		textField.setText("0");
 	}
-	public void buttonClickHandler(ActionEvent evt) {
+
+	public void buttonClickHandler(ActionEvent evt) throws IOException {
 		clickedButton = (Button) evt.getTarget();
 		buttonLabel = clickedButton.getText();
 		try {
-			if("PreraËunaj".equals(buttonLabel)) {	
-				textValue = textField.getText();
-				if("0".equals(textValue) || "".equals(textValue)) {
-					status.setText("Unesite iznos za konverziju!");
+			if("R".equals(buttonLabel)) {
+				status.setText("");
+				setup(connection());
+			}
+			if ("Preraƒçunaj".equals(buttonLabel)) {
+				if(!connectionOK) {
+					setup(connection());
 				}
-				else {		
-					if(comboOne.getValue() == null || comboTwo.getValue() == null) {
+				textValue = textField.getText();
+				if ("0".equals(textValue) || "".equals(textValue)) {
+					status.setText("Unesite iznos za konverziju!");
+				} else {
+					if (comboOne.getValue() == null || comboTwo.getValue() == null) {
 						status.setText("Odaberite valutu!");
-					}
-					else {//----------------------------------------------------------------------I Z R A » U N----
+					} else {// ------------------------------------------izraƒçun----
 						jedinica1 = jediniceKV.get(comboOne.getValue());
 						jedinica2 = jediniceKV.get(comboTwo.getValue());
 						doubleValue = Double.parseDouble(textValue);
 						df = new DecimalFormat("#0.00");
-						sum = (valuteKV.get(comboOne.getValue())/jedinica1)*doubleValue;
-						finishSum = sum/(valuteKV.get(comboTwo.getValue())/jedinica2);
+						sum = (valuteKV.get(comboOne.getValue()) / jedinica1) * doubleValue;
+						finishSum = sum / (valuteKV.get(comboTwo.getValue()) / jedinica2);
 						formated = (df.format(finishSum));
-						status.setText("Rezultat konverije:    "+textValue+" "+comboOne.getValue()+" = "+ formated+" "+comboTwo.getValue());		
-						}
+						status.setText("-->     " + textValue + " " + comboOne.getValue() + " = "
+								+ formated + " " + comboTwo.getValue());
 					}
 				}
 			}
-		catch(NullPointerException e){
-			status.setText("Sve je poölo po zlu! Nazovite administratora!");
-			}
+		} catch (NullPointerException | JSONException e) {
+			status.setText("Ne radi :(");
 		}
 	}
+}
