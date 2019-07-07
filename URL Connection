@@ -1,26 +1,24 @@
-package pretvaracValuta;
+package application;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class URLconnection {
-		
+	URL obj;
+	HttpURLConnection con;
+	private boolean ok;
 	public HttpURLConnection urlConnect() {
-		
-		try {	
-		
-		URL obj = new URL("http://api.hnb.hr/tecajn/v1");
-
-		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-		
-		return con;
-		}
-	
-		catch (IOException e) {
+		try {
+			obj = new URL("http://api.hnb.hr/tecajn/v1");
+			con = (HttpURLConnection) obj.openConnection();
+			if(con.getResponseCode() == 200) {
+				ok = true;
+			}
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return null;
-		
-}
+		if(!ok) return null;
+		return con;
+	}
 }
